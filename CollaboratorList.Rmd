@@ -1,0 +1,99 @@
+---
+title: "NSF Collaboration List from PubMed"
+author: "Elana J Fertig"
+date: "August 15, 2017"
+output: word_document
+---
+
+# R session
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library('easyPubMed')
+library('plyr')
+sessionInfo()
+```
+
+# Set author for query
+
+This code sets the author from which to query. By default it uses my name, Elana Fertig, in the variable `author`. Please format your name as `"LAST NAME" "FIRST INITIAL"` to match pubmed query structure. 
+
+`authorFilter` contains the full names as `"LAST NAME" "INITALS"` to filter out additional authors with other initials. This may require further customization depending on your name. 
+
+```{r}
+author <- 'Fertig E'
+authorFilter <- 'Fertig ET'
+```
+
+# Establish date range
+
+NSF requires a "list of all persons alphabetically who are current or past collaborators on a project, book, article, rpt, abstract or paper for past 48 mos." By default, we assume that the 48 month period starts on the date of running this software. This can be changed to a different date by storing the desired date in the `currentDate` variable as a `Date` object.
+
+```{r}
+currentDate <- Sys.Date()
+queryDate <- seq(Sys.Date(), length = 2, by = "-48 months")[2]
+```
+
+# Query pubmed
+
+```{r}
+
+pmquery <- sapply(articles_to_list(fetch_pubmed_data(get_pubmed_ids(paste0(author,'[Author]')))),article_to_df)
+names(pmquery) <- NULL
+
+# filter out oddly formatted references
+pmquery <- pmquery[sapply(pmquery,function(x){any(colnames(x)=='year')})]
+
+```
+
+# Find publications from valid date range
+
+```{r}
+
+
+# get date of publication
+datePMID <- as.Date(sapply(pmquery,function(x){paste(x[1,'year'],
+                                               x[1,'month'],
+                                              x[1,'day'],sep="-")}))
+
+pmquery <- pmquery[datePMID >= queryDate]
+
+```
+
+# Exclude manuscripts by authors with similar names
+
+Note -- this part of the code may need to be customized depending on your name and additional publications that arise from a pubmed query.
+
+```{r}
+getInitials <- function(s) {
+  sapply(strsplit(s,split=" "), function(x){
+      toupper(paste(substring(x, 1, 1), collapse = ""))
+  })
+}
+
+validIDs <- !as.logical(sapply(sapply(pmquery,function(x){paste(x$lastname,getInitials(x$firstname))}),function(x){length(grep(authorFilter,x)>0)}))
+pmquery <- pmquery[validIDs]
+```
+
+# Sort into data frame
+
+```{r}
+
+pmquery.dataframe <- ldply(pmquery,data.frame)
+
+# format author names
+pmquery.dataframe$Initials <- getInitials(pmquery.dataframe$firstname)
+
+# find unique co-authors
+pmquery.dataframe <- pmquery.dataframe[!duplicated(paste(pmquery.dataframe$lastname,pmquery.dataframe$Initials)),]
+
+# alphabetize the list
+pmquery.dataframe <- pmquery.dataframe[order(pmquery.dataframe$lastname,pmquery.dataframe$Initials),]
+```
+
+# Word formatted collaboration list
+
+`r paste(paste(pmquery.dataframe$firstname,pmquery.dataframe$lastname,pmquery.dataframe$address,sep=", "),collapse='; ')`
