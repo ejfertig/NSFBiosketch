@@ -96,4 +96,4 @@ pmquery.dataframe <- pmquery.dataframe[order(pmquery.dataframe$lastname,pmquery.
 
 # Word formatted collaboration list
 
-`r paste(paste(pmquery.dataframe$firstname,pmquery.dataframe$lastname,pmquery.dataframe$address,sep=", "),collapse='; ')`
+`r paste(paste(paste(pmquery.dataframe$Initials,pmquery.dataframe$lastname),pmquery.dataframe$address,sep=", "),collapse='; ')`
