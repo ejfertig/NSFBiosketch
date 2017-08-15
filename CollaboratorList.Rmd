@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library('easyPubMed')
 library('plyr')
+library('xlsx')
 sessionInfo()
 ```
 
@@ -23,9 +24,12 @@ This code sets the author from which to query. By default it uses my name, Elana
 
 `authorFilter` contains the full names as `"LAST NAME" "INITALS"` to filter out additional authors with other initials. This may require further customization depending on your name. 
 
+`affiliationFilter` is a strong with an affiliation to filter for authors with similar names.
+
 ```{r}
 author <- 'Fertig E'
 authorFilter <- 'Fertig ET'
+affiliationFilter <- 'Northeast Regional Epilepsy Group'
 ```
 
 # Establish date range
@@ -74,7 +78,8 @@ getInitials <- function(s) {
   })
 }
 
-validIDs <- !as.logical(sapply(sapply(pmquery,function(x){paste(x$lastname,getInitials(x$firstname))}),function(x){length(grep(authorFilter,x)>0)}))
+validIDs <- !as.logical(sapply(sapply(pmquery,function(x){paste(x$lastname,getInitials(x$firstname))}),function(x){length(grep(authorFilter,x)>0)})) &
+  !as.logical(sapply(sapply(pmquery,function(x){x$address}),function(x){length(grep(affiliationFilter,x)>0)}))
 pmquery <- pmquery[validIDs]
 ```
 
@@ -87,6 +92,14 @@ pmquery.dataframe <- ldply(pmquery,data.frame)
 # format author names
 pmquery.dataframe$Initials <- getInitials(pmquery.dataframe$firstname)
 
+```
+
+```{r}
+morecollab <- read.xlsx('CollaboratorsNew.xlsx',sheetIndex = 1,header=T)
+pmquery.dataframe <- rbind(pmquery.dataframe,morecollab)
+```
+
+```{r}
 # find unique co-authors
 pmquery.dataframe <- pmquery.dataframe[!duplicated(paste(pmquery.dataframe$lastname,pmquery.dataframe$Initials)),]
 
