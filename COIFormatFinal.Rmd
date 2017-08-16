@@ -1,0 +1,34 @@
+---
+title: "Format COI"
+author: "Elana J Fertig"
+date: "August 16, 2017"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+getInitials <- function(s) {
+  sapply(strsplit(s,split=" "), function(x){
+      toupper(paste(substring(x, 1, 1), collapse = ""))
+  })
+}
+
+COI <- read.csv('ConflictOfInterest_formatted.csv',sep=",",header=T, 
+                stringsAsFactors = F)
+
+COI <- COI[COI$Type.of.Conflict=='Co-Author' | COI$Type.of.Conflict=='Collaborator',]
+
+COIByInstitute <- tapply(paste(COI$Last.Name,getInitials(COI$First.Name)),
+                         COI$Institution.or.Affiliation,function(x){paste(x,collapse=', ')})
+
+COIFormat <- sprintf('%s (%s)', COIByInstitute, names(COIByInstitute))
+names(COIFormat) <- names(COIByInstitute)
+
+COIByInstitute <- COIByInstitute[order(names(COIByInstitute))]
+```
+
+`r paste(COIFormat,collapse='; ')`
