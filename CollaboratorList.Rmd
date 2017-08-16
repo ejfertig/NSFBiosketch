@@ -92,10 +92,12 @@ pmquery.dataframe <- ldply(pmquery,data.frame)
 # format author names
 pmquery.dataframe$Initials <- getInitials(pmquery.dataframe$firstname)
 
+pmquery.dataframe$ColabType <- 'Co-Author'
 ```
 
 ```{r}
 morecollab <- read.xlsx('CollaboratorsNew.xlsx',sheetIndex = 1,header=T)
+morecollab$ColabType <- 'Collaborator'
 pmquery.dataframe <- rbind(pmquery.dataframe,morecollab)
 ```
 
@@ -110,3 +112,18 @@ pmquery.dataframe <- pmquery.dataframe[order(pmquery.dataframe$lastname,pmquery.
 # Word formatted collaboration list
 
 `r paste(paste(paste(pmquery.dataframe$Initials,pmquery.dataframe$lastname),pmquery.dataframe$address,sep=", "),collapse='; ')`
+
+# CSV for COI
+
+```{r}
+csvOut <- data.frame('FastLane Proposal Number'=rep('',nrow(pmquery.dataframe)),
+                     'Last Name'=pmquery.dataframe$lastname,
+                     'First Name'=pmquery.dataframe$firstname,
+                     'Institution or Affiliation'=pmquery.dataframe$address,
+                     'Conflicted with Person (Last Name)'=strsplit(author,split=" ")[[1]][1],
+                     'Conflicted with Person (First Name)'=strsplit(author,split=" ")[[1]][2],
+                     'Type of Conflict'=pmquery.dataframe$ColabType)
+
+write.csv(csvOut,row.names = F,file='ConflictOfInterest.csv')
+
+```
